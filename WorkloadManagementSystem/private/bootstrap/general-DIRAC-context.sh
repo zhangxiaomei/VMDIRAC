@@ -186,11 +186,11 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 #    runsvctrl d startup/*
 #    killall runsv
 
-        cd /root
-        wget -O vmsysinfo.py 'http://dirac-code.ihep.ac.cn/bes/pub/vmscript/vmsysinfo.py' >> /var/log/dirac-context-script.log 2>&1
-        chmod +x vmsysinfo.py
-        ./vmsysinfo.py -c yes > /var/log/vmsysinfo.log 2>&1 &
-        cd -
+#        cd /root
+#        wget -O vmsysinfo.py 'http://dirac-code.ihep.ac.cn/bes/pub/vmscript/vmsysinfo.py' >> /var/log/dirac-context-script.log 2>&1
+#        chmod +x vmsysinfo.py
+#        ./vmsysinfo.py -c yes > /var/log/vmsysinfo.log 2>&1 &
+#        cd -
 
         echo "END dirac-context-script.sh" >> /var/log/dirac-context-script.log 2>&1
 
