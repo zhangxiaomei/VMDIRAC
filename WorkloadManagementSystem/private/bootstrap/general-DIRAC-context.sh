@@ -163,6 +163,10 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run 
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/run 
 
+	# Convert the OwnerGroup from string to list
+	echo "Modify the source a little to make multi OwnerGroup work" >> /var/log/dirac-context-script.log 2>&1
+	sed -i "/self.ceParameters\['LocalSE'\]/a\      elif option == 'OwnerGroup':\n        self.ceParameters['OwnerGroup'] = value.split( ', ' )" /opt/dirac/DIRAC/Resources/Computing/ComputingElement.py
+
 	echo "runsvdir startup, have a look to DIRAC JobAgent, VirtualMachineMonitorAgent and VirtualMachineConfigUpdater logs" >> /var/log/dirac-context-script.log 2>&1
 	runsvdir -P /opt/dirac/startup 'log:  DIRAC runsv' &
 
