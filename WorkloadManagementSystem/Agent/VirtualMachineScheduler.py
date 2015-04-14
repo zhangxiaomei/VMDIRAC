@@ -190,6 +190,7 @@ class VirtualMachineScheduler( AgentModule ):
         cloudEndpoints = [element for element in cloudEndpointsStr.split( ',' )]
         shuffle( cloudEndpoints )
         self.log.info( 'cloudEndpoints random failover: %s' % cloudEndpoints )
+        numVMs = 0
         numVMsToSubmit = {}
         for endpoint in cloudEndpoints:
           self.log.info( 'Checking to submit to: %s' % endpoint )
@@ -225,20 +226,20 @@ class VirtualMachineScheduler( AgentModule ):
               numVMs = 1
             if vmPolicy == 'static':
               numVMs = maxEndpointInstances - endpointInstances
-            numVMsToSubmit.update({str(endpoint): int(numVMs) })
+          numVMsToSubmit.update({str(endpoint): int(numVMs) })
 
           # site to match with TQ:
           siteToMatch = gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( endpoint, 'siteName' ), "" )
           runningPodRequirementsDict = runningPodDict['Requirements']
           runningPodRequirementsDict['Site'] = siteToMatch
 
-          #self.log.info( 'Requirements to match: ', runningPodRequirementsDict )
+          self.log.verbose( 'Requirements to match: ', runningPodRequirementsDict )
           result = taskQueueDB.getMatchingTaskQueues( runningPodRequirementsDict )
           if not result['OK']:
             self.log.error( 'Could not retrieve TaskQueues from TaskQueueDB', result['Message'] )
             return result
           taskQueueDict = result['Value']
-          #self.log.info( 'Task Queues Dict: ', taskQueueDict )
+          self.log.verbose( 'Task Queues Dict: ', taskQueueDict )
           jobs = 0
           priority = 0
           cpu = 0
@@ -271,7 +272,7 @@ class VirtualMachineScheduler( AgentModule ):
 
     for directorName, imageOfJobsToSubmitDict in imagesToSubmit.items():
       for imageName, jobsToSubmitDict in imageOfJobsToSubmitDict.items():
-        if self.directors[directorName]['isEnabled']:
+        if self.directors[directorName]['isEnabled'] and numVMs > 0:
           self.log.info( 'Requesting submission of %s to %s' % ( imageName, directorName ) )
 
           director = self.directors[directorName]['director']

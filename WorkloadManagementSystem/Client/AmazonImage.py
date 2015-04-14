@@ -1,4 +1,12 @@
 # $HeadURL$
+"""
+  Amazon Image
+  
+  The AmazonImages provides the functionality required to use AWS EC2.
+  Authentication is provided by  AccessKey/SecretKey
+"""
+# File   :   AmazonImage.py
+# Author : Victor Mendez ( vmendez.tic@gmail.com )
 
 import boto
 from boto.ec2.regioninfo import RegionInfo
@@ -10,268 +18,138 @@ from urlparse import urlparse
 # DIRAC
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 
-# VMDIRAC
-from VMDIRAC.WorkloadManagementSystem.Client.AmazonInstance import AmazonInstance
-from VMDIRAC.WorkloadManagementSystem.Utilities.Configuration import ImageConfiguration
 
-__RCSID__ = '$ID: $'
+# VMDIRAC
+from VMDIRAC.WorkloadManagementSystem.Client.AmazonInstance import AmazonClient
+from VMDIRAC.WorkloadManagementSystem.Utilities.Configuration import AmazonConfiguration, ImageConfiguration
+
+__RCSID__ = '$Id: $'
 
 class AmazonImage:
   """
-  An EC2Service provides the functionality of Amazon EC2 that is required to use it for infrastructure.
-  Authentication is provided by a public-private keypair (access_key, secret_key) which is
-  labelled by key_name and associated with a given Amazon Web Services account
+  AmazonImage class.
   """
-  
-  def __init__( self, vmName, endpoint ):
+
+  def __init__( self, imageName, endPoint ):
+    """
+    Constructor: uses AmazonConfiguration to parse the endPoint CS configuration
+    and ImageConfiguration to parse the imageName CS configuration. 
     
-    self.log = gLogger.getSubLogger( "AMI:%s" % vmName )
+    :Parameters:
+      **imageName** - `string`
+        imageName as defined on CS:/Resources/VirtualMachines/Images
+        
+      **endPoint** - `string`
+        endPoint as defined on CS:/Resources/VirtualMachines/CloudEndpoint 
     
-    self.__vmName      = vmName
-    self.__vmImage     = False
-    self.__instances   = []
-    self.__errorStatus = ""
-    #Get CloudEndpoint free slot on submission time
-    self.__endpoint    = endpoint
+    """
+    # logger
+    self.log       = gLogger.getSubLogger( 'AmazonImage %s: ' % imageName )
     
-    #FIXME: do we need to return ??
-    #FIXME: DIRACImageName ??
-    if not self.__endpoint:
-      self.__errorStatus = "Can't find endpoint for image %s" % self.__DIRACImageName
-      self.log.error( self.__errorStatus )
-      return
+    self.imageName = imageName
+    self.endPoint  = endPoint 
     
-    # Get image configuration
-    self.imageConfig = ImageConfiguration( self.__vmName ).config()
+    # their config() method returns a dictionary with the parsed configuration
+    # they also provide a validate() method to make sure it is correct 
+    self.__imageConfig = ImageConfiguration( imageName )    
+    self.__amazonConfig  = AmazonConfiguration( endPoint )
 
-    #Get AMI Id
-    self.__vmAMI = self.__getCSImageOption( "AMI" )
-    if not self.__vmAMI:
-      self.__errorStatus = "Can't find AMI for image %s" % self.__vmName
-      self.log.error( self.__errorStatus )
-      return
+    self.__cliamazon  = None
+
+  def connectAmazon( self ):
+    """
+    Method that issues the connection with Amazon. 
+    In order to do it, validates the CS configurations.
+    auth secretaccesskey
+
+    :return: S_OK | S_ERROR
+    """
+
+    # Before doing anything, make sure the configurations make sense
+    # ImageConfiguration
+    validImage = self.__imageConfig.validate()
+    if not validImage[ 'OK' ]:
+      return validImage
+    # EndpointConfiguration
+    validAmazon = self.__amazonConfig.validate()
+    if not validAmazon[ 'OK' ]:
+      return validAmazon
+
+    # Get authentication configuration
+    # not needed jet, only secretaccesskey method
+    #if not auth == 'secretaccesskey':
+    #  self.__errorStatus = "auth not supported (currently secretaccesskey)"
+    #  self.log.error( self.__errorStatus )
+    #  return
+   
+    # this object will connect to the Amazon server. Better keep it private.   
+    self.__cliamazon = AmazonClient( endpointConfig=self.__amazonConfig.config(), imageConfig=self.__imageConfig.config() )
+
+    # Check connection to the server
+    result = self.__cliamazon.check_connection()
+    if not result[ 'OK' ]:
+      self.log.error( "connectAmazon" )
+      self.log.error( result[ 'Message' ] )
+    else:
+      self.log.info( "Successful connection check" )
+      
+    return result
+   
+  def startNewInstance( self, runningPodRequirements ):
+    """
+    Once the connection is stablished using the `connectAmazon` method, we can boot
+    nodes. To do so, the config in __imageConfig and __amazonConfig applied to
+    AmazonClient initialization is applied.
     
-    #Get Max allowed price
-    self.__vmMaxAllowedPrice = self.__getCSImageOption( "MaxAllowedPrice", 0.0 )
-    #Get Amazon credentials
-    # Access key
-    self.__amAccessKey = self.__getCSCloudEndpointOption( "AccessKey" )
-    if not self.__amAccessKey:
-      self.__errorStatus = "Can't find AccessKey for Endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
+    :return: S_OK | S_ERROR
+    """
     
-    # Secret key
-    self.__amSecretKey = self.__getCSCloudEndpointOption( "SecretKey" )
-    if not self.__amSecretKey:
-      self.__errorStatus = "Can't find SecretKey for Endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
+    self.log.info( "Booting %s / %s" % ( self.__imageConfig.config()[ 'bootImageName' ],
+                                         self.__amazonConfig.config()[ 'endpointURL' ] ) )
 
-    # Endpoint URL
-    self.__EndpointURL = self.__getCSCloudEndpointOption( "EndpointURL" )
-    if not self.__EndpointURL:
-      self.__errorStatus = "Can't find endpointURL for Endpoint %s" % self.__endpoint
-      self.log.error( self.__errorStatus )
-      return
+    result = self.__cliamazon.create_VMInstance( runningPodRequirements )
 
-    # RegionName
-    self.__RegionName = self.__getCSCloudEndpointOption( "RegionName" )
-    if not self.__RegionName:
-      self.__infoStatus = "Can't find RegionName for Endpoint %s. Default name cloudEC2 will be used." % self.__endpoint
-      self.log.info( self.__infoStatus )
-      self.__RegionName = 'cloudEC2'
+    if not result[ 'OK' ]:
+      self.log.error( "startNewInstance" )
+      self.log.error( result[ 'Message' ] )
+    return result
 
-    #Try connection
-    try:
-      _debug = 0
-      url = urlparse(self.__EndpointURL)
-      _endpointHostname = url.hostname
-      _port = url.port
-      _path = url.path
-      _regionName = self.__RegionName
-      _region = RegionInfo(name=_regionName, endpoint=_endpointHostname)
-      self.__conn = boto.connect_ec2(aws_access_key_id = self.__amAccessKey,
-                       aws_secret_access_key = self.__amSecretKey,
-                       is_secure = False,
-                       region = _region,
-                       path = _path,
-                       port = _port,
-                       debug = _debug)
-    except Exception, e:
-      self.__errorStatus = "Can't connect to EC2: " + str(e)
-      self.log.error( self.__errorStatus )
-      raise
-
-    #FIXME: we will never reach a point where __errorStatus has anything
-    if not self.__errorStatus:
-      self.log.info( "Amazon image %s initialized" % self.__vmName )
-
-  def __getCSImageOption( self, option, defValue = "" ):
-    return gConfig.getValue( "/Resources/VirtualMachines/Images/%s/%s" % ( self.__vmName, option ), defValue )
-
-  def __getCSCloudEndpointOption( self, option, defValue = "" ):
-    return gConfig.getValue( "/Resources/VirtualMachines/CloudEndpoints/%s/%s" % ( self.__endpoint, option ), defValue )
-
-  def startNewInstances( self, numImages = 1, instanceType = "", waitForConfirmation = False, 
-                         forceNormalInstance = False ):
+  def getInstanceStatus( self, uniqueId ):
     """
-    Prior to use, virtual machine images are uploaded to Amazon's Simple Storage Soltion and
-    assigned an id ( image_id ), or AMI in Amazon - speak. In one request you can launch up to max
-    vms, and if min instances can't be created the call will fail.
+    Given the node ID and the current instanceName (AMI in Amazon terms), 
+    returns the status. 
     
-    A reservation contains one or more instances (instance = vm), which each
-    have their own status, IP address and other attributes
-  
-    VMs can have different virtualised hardware (instance_type), higher cpu/ram/disk results in an
-    increased cost per hour. Valid types are (2010-02-08):
-    * m1.small - 1 core, 1.7GB, 32-bit, 160GB
-    * m1.large - 2 cores, 7.5GB, 64-bit, 850GB
-    * m1.xlarge - 4 cores, 15.0GB, 64-bit, 1690GB
-    * m2.2xlarge -4 cores, 34.2GB, 64-bit, 850GB
-    * m2.4xlarge -8 cores, 68.4GB, 64-bit, 1690GB
-    * c1.medium - 2 cores, 1.70GB, 32-bit, 350GB
-    * c1.xlarge - 8 cores, 7.0GB, 64-bit, 1690GB
-  
-    http://aws.amazon.com/ec2/instance-types/
-    In a typical Amazon Web Services account, a maximum of 20 instances can run at once.
-    Use http://aws.amazon.com/contact-us/ec2-request/ to request an increase for your account.
+    :Parameters:
+      **uniqueId** - `string`
+        node ID, given by the OpenStack service       
+    
+    :return: S_OK | S_ERROR
+    """
+    
+    result = self.__cliamazon.getStatus_VMInstance( uniqueId, self.imageName )
+    
+    if not result[ 'OK' ]:
+      self.log.error( "getInstanceStatus: %s" % uniqueId )
+      self.log.error( result[ 'Message' ] )
+    
+    return result  
+    
+  def stopInstance( self, uniqueId ):
+    """
+    Method that destroys the instance 
+    
+    :Parameters:
+      **uniqueId** - `string`
+    
+    :return: S_OK | S_ERROR
     """
 
-    if self.__errorStatus:
-      return S_ERROR( self.__errorStatus )
-
-    if not instanceType:
-      instanceType = self.__getCSImageOption( 'InstanceType' , "m1.large" )
-
-    if forceNormalInstance or not self.__vmMaxAllowedPrice:
-      return self.__startNormalInstances( numImages, instanceType, waitForConfirmation )
-
-    self.log.info( "Requesting spot instances" )
-    return self.__startSpotInstances( numImages, instanceType, waitForConfirmation )
-
-
-  def __startNormalInstances( self, numImages, instanceType, waitForConfirmation ):
-    self.log.info( "Starting %d new instances for AMI %s (type %s)" % ( numImages,
-                                                                        self.__vmAMI,
-                                                                        instanceType ) )
-    if not self.__vmImage:
-      try:
-        self.__vmImage = self.__conn.get_image( self.__vmAMI )
-      except EC2ResponseError, e:
-        if e.status == 400:
-          errmsg = "boto connection problem! Check connection properties."
-        else:
-          errmsg = "boto exception: "
-        self.log.error( errmsg )
-        return S_ERROR( errmsg+e.body)
-    try:
-      if self.imageConfig[ 'contextMethod' ] == 'amiconfig':
-        userDataPath = self.imageConfig[ 'contextConfig' ].get( 'ex_userdata', None )
-        keyname  = self.imageConfig[ 'contextConfig' ].get( 'ex_keyname' , None )
-        userData = ""
-        with open( userDataPath, 'r' ) as userDataFile: 
-          userData = ''.join( userDataFile.readlines() )
-        reservation = self.__vmImage.run( min_count = numImages,
-                                        max_count = numImages,
-                                        user_data = userData,
-                                        key_name = keyname,
-                                        instance_type = instanceType ) 
-      else:
-        reservation = self.__vmImage.run( min_count = numImages,
-                                        max_count = numImages,
-                                        instance_type = instanceType )
-    except Exception, e:
-      return S_ERROR( "Could not start instances: %s" % str( e ) )
-
-    idList = []
-    for instance in reservation.instances:
-      if waitForConfirmation:
-        instance.update()
-        while instance.state != u'running':
-          if instance.state == u'terminated':
-            self.log.error( "New instance terminated while starting", "AMI: %s" % self.__vmAMI )
-            continue
-          self.log.info( "Sleeping for 10 secs for instance %s (current state %s)" % ( instance, instance.state ) )
-          time.sleep( 10 )
-          instance.update()
-        if instance.state != u'terminated':
-          self.log.info( "Instance %s started" % instance.id )
-      idList.append( instance.id )
-    return S_OK( idList )
-
-  def __startSpotInstances( self, numImages, instanceType, waitForConfirmation ):
-    self.log.info( "Starting %d new spot instances for AMI %s (type %s)" % ( numImages,
-                                                                        self.__vmAMI,
-                                                                        instanceType ) )
-    try:
-      spotInstanceRequests = self.__conn.request_spot_instances( price = "%f" % self.__vmMaxAllowedPrice,
-                                                        image_id = self.__vmAMI,
-                                                        count = numImages,
-                                                        instance_type = instanceType )
-      self.log.verbose( "Got %d spot instance requests" % len( spotInstanceRequests ) )
-    except Exception, e:
-      return S_ERROR( "Could not start spot instances: %s" % str( e ) )
-
-    idList = []
-    openSIRs = spotInstanceRequests
-    sirIDToCheck = [ sir.id for sir in openSIRs ]
-    invalidSIRs = []
-    while sirIDToCheck:
-      time.sleep( 10 )
-      self.log.verbose( "Refreshing SIRS %s" % ", ".join( sirIDToCheck ) )
-      openSIRs = self.__conn.get_all_spot_instance_requests( sirIDToCheck )
-      sirIDToCheck = []
-      while openSIRs:
-        sir = openSIRs.pop()
-        self.log.verbose( "SIR %s is in state %s" % ( sir.id, sir.state ) )
-        if sir.state == u'active' and 'instance_id' in dir( sir ):
-          self.log.verbose( "SIR %s has instance %s" % ( sir.id, sir.instance_id ) )
-          idList.append( sir.instance_id )
-        elif sir.state == u'closed':
-          invalidSIRs.append( sir.id )
-        else:
-          sirIDToCheck.append( sir.id )
-
-    if idList:
-      return S_OK( idList )
-    return S_ERROR( "Could not start any spot instance. Failed SIRs : %s" % ", ".join( invalidSIRs ) )
-
-  def stopInstances( self, instancesList ):
-    """
-    Simple call to terminate a VM based on its id
-    """
-    if type( instancesList ) in ( types.StringType, types.UnicodeType ):
-      instancesList = [ instancesList ]
-    try:
-      self.__conn.terminate_instances( instancesList )
-    except Exception, error:
-      return S_ERROR("Exception: %s" % str(error))
-    return S_OK()
-
-  def getAllInstances( self ):
-    """
-    Get all instances for this image
-    """
-    instances = []
-    for res in self.__conn.get_all_instances():
-      for instance in res.instances:
-        if instance.image_id == self.__vmAMI:
-          instances.append( AmazonInstance( instance.id, self.__amAccessKey, self.__amSecretKey, self.__RegionName, self.__EndpointURL ) )
-    return instances
-
-  def getAllRunningInstances( self ):
-    """
-    Get all running instances for this image
-    """
-    instances = []
-    for res in self.__conn.get_all_instances():
-      for instance in res.instances:
-        if instance.image_id == self.__vmAMI:
-          instance.update()
-          if instance.state == u'running':
-            instances.append( AmazonInstance( instance.id, self.__amAccessKey, self.__amSecretKey, self.__RegionName, self.__EndpointURL ) )
-    return instances
-  
+    result = self.__cliamazon.terminate_VMinstance( uniqueId )
+    
+    if not result[ 'OK' ]:
+      self.log.error( "stopInstance: %s " % ( uniqueId ) )
+      self.log.error( result[ 'Message' ] )
+    
+    return result
 #...............................................................................
 #EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF#EOF
