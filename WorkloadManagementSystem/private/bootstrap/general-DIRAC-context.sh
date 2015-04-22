@@ -91,7 +91,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	cd /opt/dirac
 	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
 
-	su dirac -c'python dirac-install -V "VMBES"' >> /var/log/dirac-context-script.log 2>&1
+	su dirac -c'python dirac-install -V "VMBES" -T 3600' >> /var/log/dirac-context-script.log 2>&1
 
 	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
         rm -rf VMDIRAC
