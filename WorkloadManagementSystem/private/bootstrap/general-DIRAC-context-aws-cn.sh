@@ -66,7 +66,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 echo "http_proxy: $http_proxy" >> /var/log/dirac-context-script.log 2>&1
 echo "https_proxy: $https_proxy" >> /var/log/dirac-context-script.log 2>&1
 export http_proxy="http://172.31.8.148:3128"
-export https_proxy="https://172.31.8.148:3128"
+export https_proxy="http://172.31.8.148:3128"
 
 # dirac user:
         /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
@@ -96,7 +96,7 @@ export https_proxy="https://172.31.8.148:3128"
 	cd /opt/dirac
 	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
 
-	su dirac -c'python dirac-install -V "VMBES"' >> /var/log/dirac-context-script.log 2>&1
+	su dirac -c'python dirac-install -V "VMBES" -T 3600' >> /var/log/dirac-context-script.log 2>&1
 
 	# FOR DEBUGGIN PURPOSES overwriting with last released in the local vmendez git folder: 
         rm -rf VMDIRAC
