@@ -167,25 +167,32 @@ export https_proxy="http://172.31.8.148:3128"
 	cd /opt/dirac
         if [ ${localVmRunJobAgent} != 'nouse' ]
         then
-	  mkdir -p startup/WorkloadManagement_JobAgent/log >> /var/log/dirac-context-script.log 2>&1
-	  mv ${localVmRunJobAgent} startup/WorkloadManagement_JobAgent/run >> /var/log/dirac-context-script.log 2>&1
-	  cp ${localVmRunLogAgent} startup/WorkloadManagement_JobAgent/log/run >> /var/log/dirac-context-script.log 2>&1
-	  chmod 755 startup/WorkloadManagement_JobAgent/log/run 
-          chmod 755 startup/WorkloadManagement_JobAgent/run 
+          cpucores=`cat /proc/cpuinfo | grep 'processor' | wc -l`
+          echo "There are ${cpucores} CPU cores for this virtual machine" >> /var/log/dirac-context-script.log 2>&1
 
-	  echo "rights and permissions to control and work JobAgent dirs" >> /var/log/dirac-context-script.log 2>&1
-	  mkdir -p /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  mkdir -p /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chmod 775 /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chmod 775 /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chown root:dirac /opt/dirac/work/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  chown root:dirac /opt/dirac/control/WorkloadManagement/JobAgent >> /var/log/dirac-context-script.log 2>&1
-	  echo "/opt/dirac/control/WorkloadManagement content" >> /var/log/dirac-context-script.log 2>&1
-	  ls -l /opt/dirac/control/WorkloadManagement >> /var/log/dirac-context-script.log 2>&1
-	  echo "/opt/dirac/work/WorkloadManagement content" >> /var/log/dirac-context-script.log 2>&1
-	  ls -l /opt/dirac/work/WorkloadManagement >> /var/log/dirac-context-script.log 2>&1
-	  echo >> /var/log/dirac-context-script.log 2>&1
+          for ((i=0; i<${cpucores}; i++))
+          do
+            mkdir -p startup/WorkloadManagement_JobAgent${i}/log >> /var/log/dirac-context-script.log 2>&1
+            cp ${localVmRunJobAgent} startup/WorkloadManagement_JobAgent${i}/run >> /var/log/dirac-context-script.log 2>&1
+            cp ${localVmRunLogAgent} startup/WorkloadManagement_JobAgent${i}/log/run >> /var/log/dirac-context-script.log 2>&1
+            chmod 755 startup/WorkloadManagement_JobAgent${i}/log/run 
+            chmod 755 startup/WorkloadManagement_JobAgent${i}/run 
+
+            echo "rights and permissions to control and work JobAgent dirs" >> /var/log/dirac-context-script.log 2>&1
+            mkdir -p /opt/dirac/control/WorkloadManagement/JobAgent${i} >> /var/log/dirac-context-script.log 2>&1
+            mkdir -p /opt/dirac/work/WorkloadManagement/JobAgent${i} >> /var/log/dirac-context-script.log 2>&1
+            chmod 775 /opt/dirac/control/WorkloadManagement/JobAgent${i} >> /var/log/dirac-context-script.log 2>&1
+            chmod 775 /opt/dirac/work/WorkloadManagement/JobAgent${i} >> /var/log/dirac-context-script.log 2>&1
+            chown root:dirac /opt/dirac/work/WorkloadManagement/JobAgent${i} >> /var/log/dirac-context-script.log 2>&1
+            chown root:dirac /opt/dirac/control/WorkloadManagement/JobAgent${i} >> /var/log/dirac-context-script.log 2>&1
+            echo "/opt/dirac/control/WorkloadManagement content" >> /var/log/dirac-context-script.log 2>&1
+            ls -l /opt/dirac/control/WorkloadManagement >> /var/log/dirac-context-script.log 2>&1
+            echo "/opt/dirac/work/WorkloadManagement content" >> /var/log/dirac-context-script.log 2>&1
+            ls -l /opt/dirac/work/WorkloadManagement >> /var/log/dirac-context-script.log 2>&1
+            echo >> /var/log/dirac-context-script.log 2>&1
+          done
         fi
+        rm -f ${localVmRunJobAgent}
 
         if [ ${localVmRunVmUpdaterAgent} != 'nouse' ]
         then
