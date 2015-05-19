@@ -178,6 +178,29 @@ export https_proxy="http://172.31.8.148:3128"
             chmod 755 startup/WorkloadManagement_JobAgent${i}/log/run 
             chmod 755 startup/WorkloadManagement_JobAgent${i}/run 
 
+            echo 
+            cat << EOF > /opt/dirac/etc/WorkloadManagement_JobAgent${i}.cfg
+Systems
+{
+  WorkloadManagement
+  {
+    Production
+    {
+      Agents
+      {
+        JobAgent${i}
+        {
+          Module = JobAgent
+          FillingModeFlag = true
+          StopOnApplicationFailure = false
+        }
+      }
+    }
+  }
+}
+EOF
+            sed -i "12c exec chpst -u dirac:dirac python /opt/dirac/DIRAC/Core/scripts/dirac-agent.py WorkloadManagement/JobAgent${i} /opt/dirac/etc/WorkloadManagement_JobAgent${i}.cfg -o LogLevel=INFO < /dev/null" startup/WorkloadManagement_JobAgent${i}/run
+
             echo "rights and permissions to control and work JobAgent dirs" >> /var/log/dirac-context-script.log 2>&1
             mkdir -p /opt/dirac/control/WorkloadManagement/JobAgent${i} >> /var/log/dirac-context-script.log 2>&1
             mkdir -p /opt/dirac/work/WorkloadManagement/JobAgent${i} >> /var/log/dirac-context-script.log 2>&1
