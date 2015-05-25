@@ -65,8 +65,10 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 echo "http_proxy: $http_proxy" >> /var/log/dirac-context-script.log 2>&1
 echo "https_proxy: $https_proxy" >> /var/log/dirac-context-script.log 2>&1
-export http_proxy="http://172.31.8.148:3128"
-export https_proxy="http://172.31.8.148:3128"
+echo "no_proxy: $no_proxy" >> /var/log/dirac-context-script.log 2>&1
+export http_proxy="http://172.31.12.181:3128"
+export https_proxy="http://172.31.12.181:3128"
+export no_proxy="169.254.169.254"
 
 # dirac user:
         /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
