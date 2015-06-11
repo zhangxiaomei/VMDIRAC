@@ -210,6 +210,15 @@ export no_proxy="169.254.169.254"
 	echo "Modify the source a little to make multi OwnerGroup work" >> /var/log/dirac-context-script.log 2>&1
 	sed -i "/self.ceParameters\['LocalSE'\]/a\      elif option == 'OwnerGroup':\n        self.ceParameters['OwnerGroup'] = value.split( ', ' )" /opt/dirac/DIRAC/Resources/Computing/ComputingElement.py
 
+	# Make the halt instance more precisely
+	echo "Modify the source to make the halt instance more precisely" >> /var/log/dirac-context-script.log 2>&1
+	sed -i "/submission = self.__submitJob/i\      self.__addCounter( 1 )" /opt/dirac/DIRAC/WorkloadManagementSystem/Agent/JobAgent.py
+	sed -i "/submission = self.__submitJob/a\      self.__addCounter( -1 )" /opt/dirac/DIRAC/WorkloadManagementSystem/Agent/JobAgent.py
+        sed -i "\$i \  #############################################################################\n  def __addCounter( self, offset ):\n    with open('/tmp/dirac_job_counter', 'a+') as f:\n      fcntl.flock(f, fcntl.LOCK_EX)\n      f.seek(0)\n      count = 0\n      strcount = f.read()\n      if strcount:\n        count = int(strcount)\n      count += offset\n      f.seek(0)\n      f.truncate()\n      f.write(str(count))\n" JobAgent.py
+
+        sed -i "\$a \  def __checkJobIdle( self ):\n    with open('/tmp/dirac_job_counter', 'r') as f:\n      fcntl.flock(f, fcntl.LOCK_EX)\n      count = 0\n      strcount = f.read()\n      if strcount:\n        count = int(strcount)\n    return count == 0\n" VirtualMachineMonitorAgent.py
+        sed -i "s/if avgLoad < self.vmMinWorkingLoad:/if avgLoad < self.vmMinWorkingLoad and self.__checkJobIdle():/" VirtualMachineMonitorAgent.py
+
 	echo "runsvdir startup, have a look to DIRAC JobAgent, VirtualMachineMonitorAgent and VirtualMachineConfigUpdater logs" >> /var/log/dirac-context-script.log 2>&1
 	runsvdir -P /opt/dirac/startup 'log:  DIRAC runsv' &
 
