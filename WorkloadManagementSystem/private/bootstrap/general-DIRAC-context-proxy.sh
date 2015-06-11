@@ -216,7 +216,7 @@ export no_proxy="169.254.169.254"
 	sed -i "/submission = self.__submitJob/a\      self.__addCounter( -1 )" /opt/dirac/DIRAC/WorkloadManagementSystem/Agent/JobAgent.py
         sed -i "\$i \  #############################################################################\n  def __addCounter( self, offset ):\n    import fcntl\n    with open('/tmp/dirac_job_counter', 'a+') as f:\n      fcntl.flock(f, fcntl.LOCK_EX)\n      f.seek(0)\n      count = 0\n      strcount = f.read()\n      if strcount:\n        count = int(strcount)\n      count += offset\n      f.seek(0)\n      f.truncate()\n      f.write(str(count))\n" /opt/dirac/DIRAC/WorkloadManagementSystem/Agent/JobAgent.py
 
-        sed -i "\$a \  def __checkJobIdle( self ):\n    import fcntl\n    with open('/tmp/dirac_job_counter', 'r') as f:\n      fcntl.flock(f, fcntl.LOCK_EX)\n      count = 0\n      strcount = f.read()\n      if strcount:\n        count = int(strcount)\n    return count == 0\n" /opt/dirac/VMDIRAC/WorkloadManagementSystem/Agent/VirtualMachineMonitorAgent.py
+        sed -i "\$a \  def __checkJobIdle( self ):\n    import fcntl\n    with open('/tmp/dirac_job_counter', 'a+') as f:\n      fcntl.flock(f, fcntl.LOCK_EX)\n      count = 0\n      strcount = f.read()\n      if strcount:\n        count = int(strcount)\n    return count == 0\n" /opt/dirac/VMDIRAC/WorkloadManagementSystem/Agent/VirtualMachineMonitorAgent.py
         sed -i "s/if avgLoad < self.vmMinWorkingLoad:/if avgLoad < self.vmMinWorkingLoad and self.__checkJobIdle():/" /opt/dirac/VMDIRAC/WorkloadManagementSystem/Agent/VirtualMachineMonitorAgent.py
 
 	echo "runsvdir startup, have a look to DIRAC JobAgent, VirtualMachineMonitorAgent and VirtualMachineConfigUpdater logs" >> /var/log/dirac-context-script.log 2>&1
