@@ -208,7 +208,7 @@ export no_proxy="169.254.169.254"
 
 	# Convert the OwnerGroup from string to list
 	echo "Modify the source a little to make multi OwnerGroup work" >> /var/log/dirac-context-script.log 2>&1
-	sed -i "/self.ceParameters\['LocalSE'\]/a\      elif option == 'OwnerGroup':\n        self.ceParameters['OwnerGroup'] = value.split( ', ' )" /opt/dirac/DIRAC/Resources/Computing/ComputingElement.py
+	sed -i "/self.ceParameters\['LocalSE'\]/a\        elif option == 'OwnerGroup':\n          self.ceParameters['OwnerGroup'] = value.split( ', ' )" /opt/dirac/DIRAC/Resources/Computing/ComputingElement.py
 
 	# Make the halt instance more precisely
 	echo "Modify the source to make the halt instance more precisely" >> /var/log/dirac-context-script.log 2>&1
