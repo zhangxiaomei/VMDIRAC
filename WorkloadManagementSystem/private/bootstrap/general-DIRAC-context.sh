@@ -236,6 +236,9 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 " /opt/dirac/VMDIRAC/WorkloadManagementSystem/Agent/VirtualMachineMonitorAgent.py
         sed -i "s/if avgLoad < self.vmMinWorkingLoad:/if avgLoad < self.vmMinWorkingLoad and self.__checkJobIdle():/" /opt/dirac/VMDIRAC/WorkloadManagementSystem/Agent/VirtualMachineMonitorAgent.py
 
+        # Use DataManager instead of ReplicaManager
+        sed -i 's/ReplicaManager/DataManager/g' /opt/dirac/VMDIRAC/WorkloadManagementSystem/private/OutputDataExecutor.py
+
 	echo "runsvdir startup, have a look to DIRAC JobAgent, VirtualMachineMonitorAgent and VirtualMachineConfigUpdater logs" >> /var/log/dirac-context-script.log 2>&1
 	runsvdir -P /opt/dirac/startup 'log:  DIRAC runsv' &
 
