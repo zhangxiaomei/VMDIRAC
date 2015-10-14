@@ -236,6 +236,13 @@ EOF
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/log/run 
 	chmod 755 startup/WorkloadManagement_VirtualMachineMonitorAgent/run 
 
+	# Update the CAs every day
+	cat << EOT > /etc/cron.daily/dirac-update-ca
+#!/bin/sh
+su dirac -c 'source /opt/dirac/bashrc; dirac-admin-get-CAs -c y'
+EOT
+        chmod +x /etc/cron.daily/dirac-update-ca
+
 	# Convert the OwnerGroup from string to list
 	echo "Modify the source a little to make multi OwnerGroup work" >> /var/log/dirac-context-script.log 2>&1
 	sed -i "/self.ceParameters\['LocalSE'\]/a\        elif option == 'OwnerGroup':\n          self.ceParameters['OwnerGroup'] = value.split( ', ' )" /opt/dirac/DIRAC/Resources/Computing/ComputingElement.py
