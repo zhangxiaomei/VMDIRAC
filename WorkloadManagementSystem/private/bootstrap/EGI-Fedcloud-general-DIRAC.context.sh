@@ -4,6 +4,36 @@
 # To be run as root on VM
 #
 
+
+get_packaging_system() {
+    YUM_CMD=$(which yum)
+    APT_GET_CMD=$(which apt-get)
+
+    if [ ! -z $YUM_CMD ]
+    then
+        echo "RedHat based"
+        PACKAGE_MANAGER="yum"
+    elif [ ! -z $APT_GET_CMD ]
+    then
+        echo "Debian based"
+        PACKAGE_MANAGER="apt-get"
+    else
+        echo "Package manager not implemented."
+    fi
+}
+
+install_unzip() {
+    get_packaging_system
+    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y update
+    [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install unzip
+}
+
+install_easy_install() {
+    get_packaging_system
+   [ ! -z $PACKAGE_MANAGER ] && $PACKAGE_MANAGER -y install python-setuptools
+}
+
+
         echo "Starting dirac-context-script.sh" > /var/log/dirac-context-script.log 2>&1
 
 
@@ -38,9 +68,6 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 # dirac user:
         /usr/sbin/useradd -m -s /bin/bash -d /opt/dirac dirac >> /var/log/dirac-context-script.log 2>&1
-# To work wiht the cmvfs LB_LOGIN of LHCb:
-        chmod g+w /root
-        chown root:dirac /root
 
 # servercert/serverkey previouslly to this script copied 
 #
@@ -52,14 +79,29 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 
 	sleep 1
 
-	chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
-	chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
+	# If there is no key, is because the cert is a user proxy
+	if [ ! -s etc/grid-security/serverkey.pem ]
+	then
+		isproxy="Y"
+		diracuid=`id -u dirac`
+		proxyname=`echo "x509up_u${diracuid}"`
+		echo "User proxy: ${proxyname}" >> /var/log/dirac-context-script.log 2>&1
+		mv etc/grid-security/servercert.pem /tmp/${proxyname}
+		chmod 600  /tmp/${proxyname}
+		cp /tmp/${proxyname} /tmp/x509up_u0
+		chown dirac.dirac  /tmp/${proxyname}
+		ls -l /tmp/${proxyname} >> /var/log/dirac-context-script.log 2>&1
+	else
+		isproxy="N"
+		chmod 444 etc/grid-security/servercert.pem >> /var/log/dirac-context-script.log 2>&1
+		chmod 400 etc/grid-security/serverkey.pem >> /var/log/dirac-context-script.log 2>&1
+	fi
+
 
 	chown -R dirac:dirac etc >> /var/log/dirac-context-script.log 2>&1
 	
 #
 # Installing DIRAC
-# FOR DEBUGGIN PURPOSES installing debuggin github version instead of cvmfs repository released DIRAC:
 #
 	cd /opt/dirac
 	wget --no-check-certificate -O dirac-install 'https://github.com/DIRACGrid/DIRAC/raw/integration/Core/scripts/dirac-install.py' >> /var/log/dirac-context-script.log 2>&1
@@ -72,7 +114,7 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         # checking if unzip installed
         if [ ! `which unzip` ]
         then
-          yum -y install unzip
+          install_unzip
         fi
 	unzip vmdirac.zip >> /var/log/dirac-context-script.log 2>&1
         mv VMDIRAC-master VMDIRAC
@@ -93,6 +135,12 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 	export LD_LIBRARY_PATH
         platform=`dirac-platform`
         # for the VM Monitor
+        # checking if easy_install installed
+        if [ ! `which easy_install` ]
+        then
+                echo "easy_install not installed. Installing">> /var/log/dirac-context-script.log 2>&1
+                install_easy_install
+        fi
         echo "Installing easy_install simplejson for the VM Monitor" >> /var/log/dirac-context-script.log 2>&1
         `which python` `which easy_install` simplejson >> /var/log/dirac-context-script.log 2>&1
         # getting RunningPodRequirements
@@ -104,10 +152,22 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
         # configure, if CAs are not download we retry
         for retry in 0 1 2 3 4 5 6 7 8 9
         do
-		su dirac -c"source bashrc;dirac-configure -UHddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
-		# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificate 
-		# options only for debuging D: SkipCADownload
-		# after UseServerCertificate = yes for the configuration with CS
+		# if user proxy:
+		if [ ${isproxy} == "Y" ]
+		then
+			#user proxy credentials
+			su dirac -c"source bashrc;dirac-configure -Hddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
+			# options H: SkipCAChecks, dd: debug level 2
+			# options only for debuging D: SkipCADownload
+		else
+			#hostcert credentials (compatibility previous v6r14)
+			su dirac -c"source bashrc;dirac-configure -UHddd $requirements -o /LocalSite/CloudDriver=$cloudDriver -o /LocalSite/Site=$siteName  -o /LocalSite/VMStopPolicy=$vmStopPolicy  -o /LocalSite/CE=CE-nouse defaults-VMEGI.cfg"  >> /var/log/dirac-context-script.log 2>&1
+			# options H: SkipCAChecks, dd: debug level 2, U: UseServerCertificateCredentials
+			# options only for debuging D: SkipCADownload
+			# after configuration with UseServerCertificate = yes for the configuration with CS
+			# 	we have to change to allow user proxy delegation for agents:
+        		su dirac -c'sed "s/UseServerCertificate = yes/#UseServerCertificate = yes/" etc/dirac.cfg > dirac.cfg.aux'
+		fi
 		if [ `ls /opt/dirac/etc/grid-security/certificates | wc -l` -ne 0 ]
 		then
 			echo "certificates download in dirac-configure at retry: $retry"  >> /var/log/dirac-context-script.log 2>&1
@@ -115,8 +175,6 @@ echo "9 $cloudDriver" >> /var/log/dirac-context-script.log 2>&1
 		fi
 		echo "certificates was not download in dirac-configure at retry: $retry"  >> /var/log/dirac-context-script.log 2>&1
 	done
-	# we have to change to allow user proxy delegation for agents:
-        su dirac -c'sed "s/UseServerCertificate = yes/#UseServerCertificate = yes/" etc/dirac.cfg > dirac.cfg.aux'
         su dirac -c'cp etc/dirac.cfg dirac.cfg.postconfigure'
 	su dirac -c'mv dirac.cfg.aux etc/dirac.cfg'
 	echo "etc/dirac.cfg content previous to agents run: "  >> /var/log/dirac-context-script.log 2>&1
