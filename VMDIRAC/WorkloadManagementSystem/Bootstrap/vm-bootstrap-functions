@@ -124,7 +124,7 @@ vm_dirac_install() {
   fi
 
   chmod +x dirac-install
-  ./dirac-install -l $release_project -r $release_version -e VMDIRAC:v2r0 -ddd
+  ./dirac-install -l $release_project -r $release_version -e VMDIRAC -ddd
   . ./bashrc
 
   mkdir -p /opt/dirac/etc/grid-security
