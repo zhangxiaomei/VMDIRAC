@@ -95,7 +95,7 @@ fi
 # Get the big 40GB+ logical partition as /scratch
 mkdir -p /scratch
 
-vm_mount_scratch_disk
+#vm_mount_scratch_disk
 
 # anyone can create directories there
 chmod ugo+rwxt /scratch
