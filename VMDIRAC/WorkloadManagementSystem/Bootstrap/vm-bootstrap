@@ -59,8 +59,10 @@ esac
 done
 
 if [ "$cvmfs_proxy" != 'DIRECT' && "$cvmfs_proxy" != 'None' ]; then
-  export http_proxy=$cvmfs_proxy
-  export https_proxy=$cvmfs_proxy
+  hproxy=`echo "$cvmfs_proxy" | awk -F '|' '{print $1}'`
+  echo "Setting http_proxy: $hproxy"
+  export http_proxy=$hproxy
+  export https_proxy=$hproxy
 fi
 
 # We might be running from cvmfs or from /var/spool/checkout
