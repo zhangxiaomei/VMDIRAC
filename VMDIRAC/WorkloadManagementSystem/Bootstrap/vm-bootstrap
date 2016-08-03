@@ -58,8 +58,10 @@ case $i in
 esac
 done
 
-export http_proxy=$cvmfs_proxy
-export https_proxy=$cvmfs_proxy
+if [ "$cvmfs_proxy" != 'DIRECT' && "$cvmfs_proxy" != 'None' ]; then
+  export http_proxy=$cvmfs_proxy
+  export https_proxy=$cvmfs_proxy
+fi
 
 # We might be running from cvmfs or from /var/spool/checkout
 export CONTEXTDIR=`readlink -f \`dirname $0\``
