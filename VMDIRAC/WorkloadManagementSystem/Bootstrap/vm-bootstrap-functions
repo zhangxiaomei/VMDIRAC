@@ -100,6 +100,27 @@ vm_cvmfs_bootstrap() {
   fi
 }
 
+vm_cvmfs_bootstrap_ihep() {
+
+  if [ ! -d /etc/cvmfs ]; then
+    vm_cvmfs_install
+  fi
+
+  # Bigger cvmfs cache, on the logical partition
+  if [ -d /etc/cvmfs ]; then
+    if [ $1 != 'None' ]; then
+      sed -i "s+CVMFS_HTTP_PROXY\s*=.*+CVMFS_HTTP_PROXY=\"$1\"+" /etc/cvmfs/default.local
+      /sbin/service autofs restart
+      cvmfs_config reload
+      cvmfs_config showconfig
+      export CVMFS=1
+    fi
+  else
+    echo CVMFS is not available on this VM
+    export CVMFS=0
+  fi
+}
+
 vm_dirac_install() {
 
   cwd=$PWD
