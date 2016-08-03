@@ -58,9 +58,6 @@ case $i in
 esac
 done
 
-export http_proxy=$cvmfs_proxy
-export https_proxy=$cvmfs_proxy
-
 # We might be running from cvmfs or from /var/spool/checkout
 export CONTEXTDIR=`readlink -f \`dirname $0\``
 date --utc +"%Y-%m-%d %H:%M:%S %Z vm-bootstrap CONTEXTDIR=$CONTEXTDIR"
