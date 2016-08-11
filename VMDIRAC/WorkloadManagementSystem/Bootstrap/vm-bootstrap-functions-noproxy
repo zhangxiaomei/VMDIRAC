@@ -73,12 +73,6 @@ vm_disable_mail() {
 }
 
 vm_setup_http_proxy() {
-  if [ "$cvmfs_proxy" != 'DIRECT' ] && [ "$cvmfs_proxy" != 'None' ]; then
-    hproxy=`echo "$cvmfs_proxy" | awk -F '|' '{print $1}'`
-    echo "Setting http_proxy: $hproxy"
-    export http_proxy=$hproxy
-    export https_proxy=$hproxy
-  fi
 }
 
 vm_cvmfs_install() {
