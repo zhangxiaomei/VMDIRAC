@@ -58,15 +58,15 @@ case $i in
 esac
 done
 
-# setup http_proxy
-vm_setup_http_proxy
-
 # We might be running from cvmfs or from /var/spool/checkout
 export CONTEXTDIR=`readlink -f \`dirname $0\``
 date --utc +"%Y-%m-%d %H:%M:%S %Z vm-bootstrap CONTEXTDIR=$CONTEXTDIR"
 
 # Get the utility function definitions
-. $CONTEXTDIR/vm-bootstrap-functions
+. $CONTEXTDIR/vm-bootstrap-functions*
+
+# setup http_proxy
+vm_setup_http_proxy
 
 # Create a shutdown_message if ACPI shutdown signal received
 cp -f $CONTEXTDIR/power.sh /etc/acpi/actions/power.sh
