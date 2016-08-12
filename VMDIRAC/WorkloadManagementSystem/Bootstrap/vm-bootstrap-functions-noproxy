@@ -73,6 +73,7 @@ vm_disable_mail() {
 }
 
 vm_setup_http_proxy() {
+  echo 'http proxy is not set'
 }
 
 vm_cvmfs_install() {
