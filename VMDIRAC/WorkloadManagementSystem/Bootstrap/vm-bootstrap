@@ -130,13 +130,13 @@ fi
 
 # We swap on the logical partition if no CernVM 2 swapfile
 # (cannot on CernVM 3 aufs filesystem)
-if [ ! -f /var/swap ] ; then
-  # Iff /scratch is ext4 can use:
-  fallocate -l 4g /scratch/swapfile
-  chmod 0600 /scratch/swapfile
-  mkswap /scratch/swapfile
-  swapon /scratch/swapfile
-fi
+#if [ ! -f /var/swap ] ; then
+#  # Iff /scratch is ext4 can use:
+#  fallocate -l 4g /scratch/swapfile
+#  chmod 0600 /scratch/swapfile
+#  mkswap /scratch/swapfile
+#  swapon /scratch/swapfile
+#fi
 
 # Swap as little as possible
 sysctl vm.swappiness=1
