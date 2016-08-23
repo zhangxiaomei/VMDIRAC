@@ -68,6 +68,9 @@ date --utc +"%Y-%m-%d %H:%M:%S %Z vm-bootstrap CONTEXTDIR=$CONTEXTDIR"
 # setup http_proxy
 vm_setup_http_proxy
 
+# install some tools
+yum -y install iotop sysstat procps iftop
+
 # Create a shutdown_message if ACPI shutdown signal received
 cp -f $CONTEXTDIR/power.sh /etc/acpi/actions/power.sh
 
