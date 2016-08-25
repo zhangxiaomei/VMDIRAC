@@ -86,7 +86,7 @@ python dirac-pilot.py \
  -r $VERSION \
  -l $PROJECT \
  -e VMDIRAC \
- --MaxCycles 1 \
+ --MaxCycles 10 \
  --configurationServer $CS_SERVERS \
  --Name "$CE_NAME" \
  --name "$DIRAC_SITE" \
