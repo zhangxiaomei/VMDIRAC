@@ -334,7 +334,7 @@ class PilotParams( object ):
   """ Class that holds the structure with all the parameters to be used across all the commands
   """
 
-  MAX_CYCLES = 10
+  MAX_CYCLES = 10000
 
   def __init__( self ):
     """ c'tor
