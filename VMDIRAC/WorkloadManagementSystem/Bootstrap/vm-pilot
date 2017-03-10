@@ -47,6 +47,9 @@ case $i in
     --cs-servers=*)
     CS_SERVERS="${i#*=}"
     ;;
+    --owner-group=*)
+    OWNER_GROUP="${i#*=}"
+    ;;
     *)
     # unknown option
     ;;
@@ -79,6 +82,9 @@ fi
 
 cp $CONTEXTDIR/*.py .
 
+echo "http_proxy: $http_proxy"
+echo "https_proxy: $https_proxy"
+
 # Run the Pilot 2.0 script
 python dirac-pilot.py \
  --debug \
@@ -95,5 +101,6 @@ python dirac-pilot.py \
  --certLocation=/scratch/$USER/etc/grid-security \
  -o /Resources/Computing/CEDefaults/SubmitPool=$SUBMIT_POOL \
  -o /Resources/Computing/CEDefaults/VirtualOrganization=$VO \
+ -o /LocalSite/OwnerGroup=$OWNER_GROUP \
  -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/StopAfterFailedMatches=0' \
  -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/CEType=InProcess'
