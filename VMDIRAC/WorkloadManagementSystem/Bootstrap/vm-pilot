@@ -26,6 +26,9 @@ case $i in
     --vmtype=*)
     VMTYPE="${i#*=}"
     ;;
+    --cvmfs-proxy=*)
+    cvmfs_proxy=`echo "${i#*=}" | sed 's/#.*$//'`
+    ;;
     --pilot-number=*)
     PILOT_NUMBER="${i#*=}"
     ;;
@@ -82,8 +85,12 @@ fi
 
 cp $CONTEXTDIR/*.py .
 
-echo "http_proxy: $http_proxy"
-echo "https_proxy: $https_proxy"
+if [ "$cvmfs_proxy" != 'DIRECT' ] && [ "$cvmfs_proxy" != 'None' ]; then
+  hproxy=`echo "$cvmfs_proxy" | awk -F '|' '{print $1}'`
+  echo "Setting http_proxy in vm-pilot: $hproxy"
+  export http_proxy=$hproxy
+  export https_proxy=$hproxy
+fi
 
 # Run the Pilot 2.0 script
 python dirac-pilot.py \
