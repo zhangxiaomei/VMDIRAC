@@ -168,6 +168,7 @@ vm_dirac_install() {
                   -o /LocalSite/ReleaseVersion=$release_version \
                   -o /LocalSite/VMID=$VM_UUID \
                   -o /LocalSite/RunningPod=$RUNNING_POD \
+                  -o /LocalSite/OwnerGroup=$OWNER_GROUP \
                   --UseServerCertificate \
                   -o /DIRAC/Security/CertFile=/opt/dirac/etc/grid-security/hostcert.pem \
                   -o /DIRAC/Security/KeyFile=/opt/dirac/etc/grid-security/hostkey.pem

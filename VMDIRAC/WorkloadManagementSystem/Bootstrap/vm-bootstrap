@@ -52,6 +52,9 @@ case $i in
     --cs-servers=*)
     CS_SERVERS="${i#*=}"
     ;;
+    --owner-group=*)
+    OWNER_GROUP="${i#*=}"
+    ;;
     *)
     # unknown option
     ;;
