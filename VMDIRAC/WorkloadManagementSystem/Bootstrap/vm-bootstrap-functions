@@ -117,13 +117,22 @@ vm_cvmfs_bootstrap_ihep() {
 
   # Bigger cvmfs cache, on the logical partition
   if [ -d /etc/cvmfs ]; then
+    # configure new CVMFS
+    rm -f /etc/cvmfs/config.d/*.ihep.ac.cn.conf
+    rm -f /etc/cvmfs/keys/*.ihep.ac.cn.pub
+    mkdir /etc/cvmfs/keys/ihep.ac.cn
+    curl -o /etc/cvmfs/keys/ihep.ac.cn/ihep.ac.cn.pub http://cvmfs-stratum-one.ihep.ac.cn/cvmfs/software/client_configure/ihep.ac.cn/ihep.ac.cn.pub
+    curl -o /etc/cvmfs/domain.d/ihep.ac.cn.conf http://cvmfs-stratum-one.ihep.ac.cn/cvmfs/software/client_configure/ihep.ac.cn.conf
+    curl -o /etc/cvmfs/domain.d/cern.ch.local http://cvmfs-stratum-one.ihep.ac.cn/cvmfs/software/client_configure/cern.ch.local
+
     if [ $1 != 'None' ]; then
       sed -i "s+CVMFS_HTTP_PROXY\s*=.*+CVMFS_HTTP_PROXY=\"$1\"+" /etc/cvmfs/default.local
-      /sbin/service autofs restart
-      cvmfs_config reload
-      cvmfs_config showconfig
-      export CVMFS=1
     fi
+
+    /sbin/service autofs restart
+    cvmfs_config reload
+    cvmfs_config showconfig
+    export CVMFS=1
   else
     echo CVMFS is not available on this VM
     export CVMFS=0
