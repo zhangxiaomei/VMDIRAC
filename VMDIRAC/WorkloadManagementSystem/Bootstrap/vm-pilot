@@ -102,7 +102,7 @@ python dirac-pilot.py \
  -r $VERSION \
  -l $PROJECT \
  -e VMDIRAC \
- --MaxCycles 10 \
+ --MaxCycles 300 \
  --configurationServer $CS_SERVERS \
  --Name "$CE_NAME" \
  --name "$DIRAC_SITE" \
@@ -113,4 +113,4 @@ python dirac-pilot.py \
  -o /Resources/Computing/CEDefaults/VirtualOrganization=$VO \
  -o /LocalSite/OwnerGroup=$OWNER_GROUP \
  -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/StopAfterFailedMatches=0' \
- -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/CEType=InProcess'
+ -o '/Systems/WorkloadManagement/Production/Agents/JobAgent/CEType=Pool'
