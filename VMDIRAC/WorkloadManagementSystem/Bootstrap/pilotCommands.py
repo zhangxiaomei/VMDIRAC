@@ -924,7 +924,9 @@ class LaunchAgent( CommandBase ):
                                                              " ".join( extraCFG ) )
 
 
-    retCode, _output = self.executeAndGetOutput( jobAgent, self.pp.installEnv )
+    retCode, output = self.executeAndGetOutput( jobAgent, self.pp.installEnv )
+    with open('jobagent.out', 'w') as f:
+      f.write(output)
     if retCode:
       self.log.error( "Error executing the JobAgent [ERROR %d]" % retCode )
       self.exitWithError( retCode )
