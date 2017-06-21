@@ -107,6 +107,7 @@ python dirac-pilot.py \
  --Name "$CE_NAME" \
  --name "$DIRAC_SITE" \
  -Q $IMAGE_NAME \
+ -M 1000 \
  --cert \
  --certLocation=/scratch/$USER/etc/grid-security \
  -o /Resources/Computing/CEDefaults/SubmitPool=$SUBMIT_POOL \
