@@ -310,6 +310,8 @@ class CloudDirector( AgentModule ):
       return result
     tqDict['Platform'] = result['Value']
     tqDict['Site'] = self.sites
+
+    ## multi-core supports
     tags = []
     for image in images:
       if 'Tags' in self.imageDict[image]['ParametersDict']:
